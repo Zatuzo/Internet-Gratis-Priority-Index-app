@@ -107,7 +107,7 @@ DEFAULT_WEIGHTS = {
 
 SLIDER_CSS = """
     <style>
-    div[data-testid="stSlider"] label p { font-size: 1.15rem !important; font-weight: 600 !important; }
+    div[data-testid="stSlider"] label p { font-size: 1.15rem !important; font-weight: 600 !important; margin-bottom: 12px !important; }
     div[data-testid="stSlider"] [data-baseweb="slider"] > div { height: 12px !important; }
     div[data-testid="stSlider"] [role="slider"] { width: 26px !important; height: 26px !important; border: 2px solid #ffffff !important; }
     div[data-testid="stSlider"] div { font-size: 1.05rem !important; }
