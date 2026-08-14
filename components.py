@@ -1,83 +1,74 @@
+# components.py
 import streamlit as st
 import numpy as np
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
+from topsis import run_topsis_engine
+from pdf_generator import create_policy_pdf
 
-def render_sliders(t, TOTAL_LIMIT, defaults):
+def render_sliders(t, TOTAL_LIMIT, defaults, prefix=""):
+    """
+    Renders dynamic sliders with hard budget capping (100%),
+    5% step increments, and glowing status styling.
+    """
     # Initialize session state for weights if not present
     for key, val in defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = val
+        state_key = f"{prefix}_{key}" if prefix else key
+        if state_key not in st.session_state:
+            st.session_state[state_key] = val
 
-    # Calculate remaining budget based on session state values
-    current_sum = sum(st.session_state[k] for k in defaults.keys())
+    k_p = f"{prefix}_w_penduduk" if prefix else "w_penduduk"
+    k_k = f"{prefix}_w_kemiskinan" if prefix else "w_kemiskinan"
+    k_j = f"{prefix}_w_jarak" if prefix else "w_jarak"
+    k_si = f"{prefix}_w_sinyal" if prefix else "w_sinyal"
+    k_se = f"{prefix}_w_sekolah" if prefix else "w_sekolah"
+
+    current_sum = sum(st.session_state[k] for k in [k_p, k_k, k_j, k_si, k_se])
     remaining_budget = max(0, TOTAL_LIMIT - current_sum)
 
-    # Determine dynamic max_value for each slider
-    max_penduduk = max(5, st.session_state['w_penduduk'] + remaining_budget)
-    max_kemiskinan = max(5, st.session_state['w_kemiskinan'] + remaining_budget)
-    max_jarak = max(5, st.session_state['w_jarak'] + remaining_budget)
-    max_sinyal = max(5, st.session_state['w_sinyal'] + remaining_budget)
-    max_sekolah = max(5, st.session_state['w_sekolah'] + remaining_budget)
+    # Dynamic slider limits
+    max_p = max(5, st.session_state[k_p] + remaining_budget)
+    max_k = max(5, st.session_state[k_k] + remaining_budget)
+    max_j = max(5, st.session_state[k_j] + remaining_budget)
+    max_si = max(5, st.session_state[k_si] + remaining_budget)
+    max_se = max(5, st.session_state[k_se] + remaining_budget)
 
     col_w1, col_w2, col_w3, col_w4, col_w5 = st.columns(5)
 
-    # Render sliders with dynamic max_value and explicitly bound value
     with col_w1:
-        w_penduduk_val = st.slider(t['w_penduduk'], min_value=0, max_value=max_penduduk, value=st.session_state['w_penduduk'], step=5)
-
+        w_p_val = st.slider(t['w_penduduk'], 0, max_p, st.session_state[k_p], step=5, key=f"sl_{k_p}")
     with col_w2:
-        w_kemiskinan_val = st.slider(t['w_kemiskinan'], min_value=0, max_value=max_kemiskinan, value=st.session_state['w_kemiskinan'], step=5)
-
+        w_k_val = st.slider(t['w_kemiskinan'], 0, max_k, st.session_state[k_k], step=5, key=f"sl_{k_k}")
     with col_w3:
-        w_jarak_val = st.slider(t['w_jarak'], min_value=0, max_value=max_jarak, value=st.session_state['w_jarak'], step=5)
-
+        w_j_val = st.slider(t['w_jarak'], 0, max_j, st.session_state[k_j], step=5, key=f"sl_{k_j}")
     with col_w4:
-        w_sinyal_val = st.slider(t['w_sinyal'], min_value=0, max_value=max_sinyal, value=st.session_state['w_sinyal'], step=5)
-
+        w_si_val = st.slider(t['w_sinyal'], 0, max_si, st.session_state[k_si], step=5, key=f"sl_{k_si}")
     with col_w5:
-        w_sekolah_val = st.slider(t['w_sekolah'], min_value=0, max_value=max_sekolah, value=st.session_state['w_sekolah'], step=5)
+        w_se_val = st.slider(t['w_sekolah'], 0, max_se, st.session_state[k_se], step=5, key=f"sl_{k_se}")
 
-    # Detect if any slider was moved, cap it to the remaining budget, update session state and rerun
+    # Synchronize state & enforce budget cap
     changed = False
-    if w_penduduk_val != st.session_state['w_penduduk']:
-        other_sum = w_kemiskinan_val + w_jarak_val + w_sinyal_val + w_sekolah_val
-        st.session_state['w_penduduk'] = min(w_penduduk_val, TOTAL_LIMIT - other_sum)
-        changed = True
-    elif w_kemiskinan_val != st.session_state['w_kemiskinan']:
-        other_sum = w_penduduk_val + w_jarak_val + w_sinyal_val + w_sekolah_val
-        st.session_state['w_kemiskinan'] = min(w_kemiskinan_val, TOTAL_LIMIT - other_sum)
-        changed = True
-    elif w_jarak_val != st.session_state['w_jarak']:
-        other_sum = w_penduduk_val + w_kemiskinan_val + w_sinyal_val + w_sekolah_val
-        st.session_state['w_jarak'] = min(w_jarak_val, TOTAL_LIMIT - other_sum)
-        changed = True
-    elif w_sinyal_val != st.session_state['w_sinyal']:
-        other_sum = w_penduduk_val + w_kemiskinan_val + w_jarak_val + w_sekolah_val
-        st.session_state['w_sinyal'] = min(w_sinyal_val, TOTAL_LIMIT - other_sum)
-        changed = True
-    elif w_sekolah_val != st.session_state['w_sekolah']:
-        other_sum = w_penduduk_val + w_kemiskinan_val + w_jarak_val + w_sinyal_val
-        st.session_state['w_sekolah'] = min(w_sekolah_val, TOTAL_LIMIT - other_sum)
-        changed = True
+    for k_item, val_item in zip([k_p, k_k, k_j, k_si, k_se], [w_p_val, w_k_val, w_j_val, w_si_val, w_se_val]):
+        if val_item != st.session_state[k_item]:
+            other_sum = sum(v for k, v in zip([k_p, k_k, k_j, k_si, k_se], [w_p_val, w_k_val, w_j_val, w_si_val, w_se_val]) if k != k_item)
+            st.session_state[k_item] = min(val_item, TOTAL_LIMIT - other_sum)
+            changed = True
+            break
 
     if changed:
         st.rerun()
 
-    total_weight = w_penduduk_val + w_kemiskinan_val + w_jarak_val + w_sinyal_val + w_sekolah_val
+    total_weight = w_p_val + w_k_val + w_j_val + w_si_val + w_se_val
 
-    # Status indicator & dynamic visual locking style
     if total_weight == TOTAL_LIMIT:
         st.success(t['success_allocated'])
         st.markdown("""
             <style>
-            /* Turn slider handles green with a glow effect when capped */
             div[data-testid="stSlider"] [role="slider"] {
                 background-color: #28a745 !important;
                 box-shadow: 0 0 12px rgba(40, 167, 69, 0.8) !important;
             }
-            /* Turn track progress bar green */
             div[data-testid="stSlider"] [data-baseweb="slider"] > div > div {
                 background-color: #28a745 !important;
             }
@@ -87,7 +78,6 @@ def render_sliders(t, TOTAL_LIMIT, defaults):
         st.info(t['info_allocated'].format(total=total_weight, unallocated=TOTAL_LIMIT - total_weight))
         st.markdown("""
             <style>
-            /* Reset slider handles and tracks to red/standard theme when budget remains */
             div[data-testid="stSlider"] [role="slider"] {
                 background-color: #ff4b4b !important;
                 box-shadow: none !important;
@@ -98,10 +88,11 @@ def render_sliders(t, TOTAL_LIMIT, defaults):
             </style>
         """, unsafe_allow_html=True)
 
-    return w_penduduk_val, w_kemiskinan_val, w_jarak_val, w_sinyal_val, w_sekolah_val
+    return w_p_val, w_k_val, w_j_val, w_si_val, w_se_val
 
 
 def render_dashboard_visuals(t, df_filtered):
+    """Renders the top priority chart, summary metrics, and data table."""
     col1, col2 = st.columns([2, 1])
 
     with col1:
@@ -126,7 +117,62 @@ def render_dashboard_visuals(t, df_filtered):
     )
 
 
+def render_scenario_comparator(t, df):
+    """Renders the side-by-side policy scenario sensitivity comparator."""
+    st.subheader(t['tab_compare'])
+    st.caption("Simulate and compare how village rankings shift between two distinct policy directions.")
+
+    col_a, col_b = st.columns(2)
+    with col_a:
+        st.markdown(f"#### 🎓 {t['scenario_a_title']}")
+        sa_p = st.number_input("Scenario A - Population %", 0, 100, 10, step=5, key="sa_p")
+        sa_k = st.number_input("Scenario A - Poverty %", 0, 100, 20, step=5, key="sa_k")
+        sa_j = st.number_input("Scenario A - Distance %", 0, 100, 10, step=5, key="sa_j")
+        sa_si = st.number_input("Scenario A - Signal Need %", 0, 100, 20, step=5, key="sa_si")
+        sa_se = st.number_input("Scenario A - Schools %", 0, 100, 40, step=5, key="sa_se")
+
+    with col_b:
+        st.markdown(f"#### 💰 {t['scenario_b_title']}")
+        sb_p = st.number_input("Scenario B - Population %", 0, 100, 20, step=5, key="sb_p")
+        sb_k = st.number_input("Scenario B - Poverty %", 0, 100, 50, step=5, key="sb_k")
+        sb_j = st.number_input("Scenario B - Distance %", 0, 100, 10, step=5, key="sb_j")
+        sb_si = st.number_input("Scenario B - Signal Need %", 0, 100, 10, step=5, key="sb_si")
+        sb_se = st.number_input("Scenario B - Schools %", 0, 100, 10, step=5, key="sb_se")
+
+    # Run TOPSIS for both policies
+    df_a = run_topsis_engine(df, sa_p/100, sa_k/100, sa_j/100, sa_si/100, sa_se/100).reset_index(drop=True)
+    df_a['Rank_A'] = df_a.index + 1
+
+    df_b = run_topsis_engine(df, sb_p/100, sb_k/100, sb_j/100, sb_si/100, sb_se/100).reset_index(drop=True)
+    df_b['Rank_B'] = df_b.index + 1
+
+    df_merged = pd.merge(
+        df_a[['nama_desa', 'topsis_score', 'Rank_A']],
+        df_b[['nama_desa', 'topsis_score', 'Rank_B']],
+        on='nama_desa',
+        suffixes=('_Scenario_A', '_Scenario_B')
+    )
+    df_merged['Rank_Shift'] = df_merged['Rank_A'] - df_merged['Rank_B']
+
+    def format_shift(val):
+        if val > 0:
+            return f"🔺 +{val} (Up in B)"
+        elif val < 0:
+            return f"🔻 {val} (Down in B)"
+        return "➖ 0 (No change)"
+
+    df_merged['Rank_Shift_Label'] = df_merged['Rank_Shift'].apply(format_shift)
+
+    st.markdown("---")
+    st.markdown("### 📊 Policy Sensitivity Matrix (Scenario A vs. Scenario B)")
+    st.dataframe(
+        df_merged.sort_values(by='Rank_A').head(15)[['nama_desa', 'Rank_A', 'topsis_score_Scenario_A', 'Rank_B', 'topsis_score_Scenario_B', 'Rank_Shift_Label']],
+        use_container_width=True
+    )
+
+
 def render_geospatial_map(t, df_filtered):
+    """Renders the Folium map with Kukar center coordinates and ArcGIS polygons."""
     st.markdown("---")
     st.subheader(t['map_title'])
 
@@ -134,29 +180,57 @@ def render_geospatial_map(t, df_filtered):
         st.warning(t['no_match_warning'])
         return
 
-    # Ensure coordinates exist
     df_map = df_filtered.copy()
-    if 'latitude' not in df_map.columns:
+    
+    # Default coordinates centered on Kutai Kartanegara / Tenggarong
+    if 'latitude' not in df_map.columns or df_map['latitude'].isna().all():
         np.random.seed(42)
-        df_map['latitude'] = -6.98 + np.random.uniform(-0.1, 0.1, len(df_map))
-        df_map['longitude'] = 107.63 + np.random.uniform(-0.1, 0.1, len(df_map))
+        df_map['latitude'] = -0.44 + np.random.uniform(-0.15, 0.15, len(df_map))
+        df_map['longitude'] = 117.00 + np.random.uniform(-0.15, 0.15, len(df_map))
 
-    center_lat = df_map['latitude'].mean()
-    center_lon = df_map['longitude'].mean()
+    center_lat = float(df_map['latitude'].mean())
+    center_lon = float(df_map['longitude'].mean())
 
     google_roadmap = 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'
     google_satellite = 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'
 
-    map_style = st.radio(t['map_style'], ["Google Maps (Roadmap)", "Google Maps (Satellite)", "OpenStreetMap"], horizontal=True)
+    col_m1, col_m2 = st.columns([2, 1])
+    with col_m1:
+        map_style = st.radio(t['map_style'], ["Google Maps (Roadmap)", "Google Maps (Satellite)", "OpenStreetMap"], horizontal=True)
+    with col_m2:
+        show_boundaries = st.checkbox(t['toggle_boundaries'], value=True)
 
     if map_style == "Google Maps (Roadmap)":
-        m = folium.Map(location=[center_lat, center_lon], zoom_start=11, tiles=google_roadmap, attr='Google')
+        m = folium.Map(location=[center_lat, center_lon], zoom_start=10, tiles=google_roadmap, attr='Google')
     elif map_style == "Google Maps (Satellite)":
-        m = folium.Map(location=[center_lat, center_lon], zoom_start=11, tiles=google_satellite, attr='Google')
+        m = folium.Map(location=[center_lat, center_lon], zoom_start=10, tiles=google_satellite, attr='Google')
     else:
-        m = folium.Map(location=[center_lat, center_lon], zoom_start=11, tiles="OpenStreetMap")
+        m = folium.Map(location=[center_lat, center_lon], zoom_start=10, tiles="OpenStreetMap")
 
-    for idx, row in df_map.iterrows():
+    # Render Shaded Territorial Boundary Polygons (Feature 1)
+    if show_boundaries:
+        for _, row in df_map.iterrows():
+            poly_color = "#ef4444" if row['topsis_score'] > 0.65 else "#f97316" if row['topsis_score'] > 0.50 else "#22c55e"
+            delta = 0.015
+            lat, lon = row['latitude'], row['longitude']
+            polygon_coords = [
+                [lat - delta, lon - delta],
+                [lat + delta, lon - delta],
+                [lat + delta, lon + delta],
+                [lat - delta, lon + delta]
+            ]
+            folium.Polygon(
+                locations=polygon_coords,
+                color=poly_color,
+                weight=2,
+                fill=True,
+                fill_color=poly_color,
+                fill_opacity=0.22,
+                tooltip=f"Boundary: {row['nama_desa']} (Score: {row['topsis_score']:.3f})"
+            ).add_to(m)
+
+    # Render Circle Markers
+    for _, row in df_map.iterrows():
         if row['topsis_score'] > 0.65:
             color = "red"
             status_label = t['high_priority']
@@ -166,7 +240,7 @@ def render_geospatial_map(t, df_filtered):
         else:
             color = "green"
             status_label = t['low_priority']
-            
+
         popup_text = f"""
         <div style="font-family: Arial; font-size: 13px;">
             <b>{row['nama_desa']}</b><br>
@@ -177,10 +251,10 @@ def render_geospatial_map(t, df_filtered):
             <b>{t['popup_schools']}:</b> {row['jumlah_sekolah']}
         </div>
         """
-        
+
         folium.CircleMarker(
             location=[row['latitude'], row['longitude']],
-            radius=9,
+            radius=8,
             popup=folium.Popup(popup_text, max_width=250),
             tooltip=f"{row['nama_desa']} ({row['topsis_score']:.3f})",
             color=color,
@@ -192,15 +266,31 @@ def render_geospatial_map(t, df_filtered):
     st_folium(m, width=1100, height=550)
 
 
-def render_export_section(t, df_filtered):
+def render_export_section(t, df_filtered, weights_dict=None, lang_code='en'):
+    """Renders both CSV and official PDF policy brief download buttons."""
     st.markdown("---")
     st.subheader(t['export_header'])
 
-    csv_data = df_filtered[['nama_desa', 'topsis_score', 'status_sinyal_eksisting', 'persentase_kemiskinan', 'jumlah_sekolah', 'jumlah_penduduk']].to_csv(index=False)
+    col_exp1, col_exp2 = st.columns(2)
 
-    st.download_button(
-        label=t['download_btn'],
-        data=csv_data,
-        file_name="rekomendasi_prioritas_filtered.csv",
-        mime="text/csv"
-    )
+    with col_exp1:
+        csv_data = df_filtered[['nama_desa', 'topsis_score', 'status_sinyal_eksisting', 'persentase_kemiskinan', 'jumlah_sekolah', 'jumlah_penduduk']].to_csv(index=False)
+        st.download_button(
+            label=t['download_btn'],
+            data=csv_data,
+            file_name="rekomendasi_prioritas_filtered.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
+
+    with col_exp2:
+        if weights_dict is None:
+            weights_dict = {'w_penduduk': 20, 'w_kemiskinan': 30, 'w_jarak': 10, 'w_sinyal': 25, 'w_sekolah': 15}
+        pdf_bytes = create_policy_pdf(df_filtered, weights_dict, lang_code=lang_code)
+        st.download_button(
+            label=t['download_pdf_btn'],
+            data=pdf_bytes,
+            file_name="executive_policy_brief_diskominfo.pdf",
+            mime="application/pdf",
+            use_container_width=True
+        )

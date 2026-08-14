@@ -1,3 +1,4 @@
+# app.py
 import streamlit as st
 from config import LANG_TEXTS, TOTAL_LIMIT, DEFAULT_WEIGHTS, SLIDER_CSS
 from data_loader import load_and_clean_data
@@ -5,6 +6,7 @@ from topsis import run_topsis_engine
 from components import (
     render_sliders,
     render_dashboard_visuals,
+    render_scenario_comparator,
     render_geospatial_map,
     render_export_section
 )
@@ -19,7 +21,7 @@ lang_code = 'en' if selected_lang == "English" else 'id'
 t = LANG_TEXTS[lang_code]
 
 st.title(t['title'])
-st.write(t['subtitle'])
+st.caption(t['subtitle'])
 
 # Inject CSS styles for sliders
 st.markdown(SLIDER_CSS, unsafe_allow_html=True)
@@ -27,56 +29,55 @@ st.markdown(SLIDER_CSS, unsafe_allow_html=True)
 # 3. Load & Clean Data
 df = load_and_clean_data()
 
-# 4. Render Sliders (Session state weights allocation)
-w_penduduk_val, w_kemiskinan_val, w_jarak_val, w_sinyal_val, w_sekolah_val = render_sliders(
-    t, TOTAL_LIMIT, DEFAULT_WEIGHTS
-)
+# 4. Tabs Architecture
+tab_main, tab_comparator = st.tabs([t['tab_single'], t['tab_compare']])
 
-# Convert to scale for TOPSIS
-w_penduduk = w_penduduk_val / 100
-w_kemiskinan = w_kemiskinan_val / 100
-w_jarak = w_jarak_val / 100
-w_sinyal = w_sinyal_val / 100
-w_sekolah = w_sekolah_val / 100
+with tab_main:
+    st.write(t['weight_header'])
+    w_p_val, w_k_val, w_j_val, w_si_val, w_se_val = render_sliders(t, TOTAL_LIMIT, DEFAULT_WEIGHTS)
 
-# 5. Run TOPSIS Engine
-df_ranked = run_topsis_engine(df, w_penduduk, w_kemiskinan, w_jarak, w_sinyal, w_sekolah)
+    # Run TOPSIS
+    w_p, w_k, w_j, w_si, w_se = w_p_val/100, w_k_val/100, w_j_val/100, w_si_val/100, w_se_val/100
+    df_ranked = run_topsis_engine(df, w_p, w_k, w_j, w_si, w_se)
 
-# 6. Filter & Search Controls
-st.markdown("---")
-st.subheader(t['filter_header'])
+    # Filter & Search Controls
+    st.markdown("---")
+    st.subheader(t['filter_header'])
+    f1, f2, f3 = st.columns([2, 2, 2])
+    with f1:
+        search_query = st.text_input(t['search_label'], "", placeholder=t['search_placeholder'])
+    with f2:
+        sig_opts = df_ranked['status_sinyal_eksisting'].unique().tolist()
+        sel_sigs = st.multiselect(t['filter_signal'], options=sig_opts, default=sig_opts)
+    with f3:
+        min_pov = st.slider(t['filter_poverty'], 0.0, 100.0, 0.0, step=5.0)
 
-filter_col1, filter_col2, filter_col3 = st.columns([2, 2, 2])
+    df_filtered = df_ranked.copy()
+    if search_query.strip():
+        df_filtered = df_filtered[df_filtered['nama_desa'].str.contains(search_query.strip(), case=False, na=False)]
+    if sel_sigs:
+        df_filtered = df_filtered[df_filtered['status_sinyal_eksisting'].isin(sel_sigs)]
+    df_filtered = df_filtered[df_filtered['persentase_kemiskinan'] >= min_pov]
 
-with filter_col1:
-    search_query = st.text_input(t['search_label'], "", placeholder=t['search_placeholder'])
+    st.caption(t['showing_caption'].format(filtered=len(df_filtered), total=len(df_ranked)))
 
-with filter_col2:
-    signal_options = df_ranked['status_sinyal_eksisting'].unique().tolist()
-    selected_signals = st.multiselect(t['filter_signal'], options=signal_options, default=signal_options)
+    # Main Visualizations
+    st.markdown("---")
+    render_dashboard_visuals(t, df_filtered)
 
-with filter_col3:
-    min_poverty = st.slider(t['filter_poverty'], 0.0, 100.0, 0.0, step=5.0)
+    # Geospatial Boundary Map (Feature 1)
+    render_geospatial_map(t, df_filtered)
 
-# Apply Filter Logic
-df_filtered = df_ranked.copy()
+    # Automated PDF & CSV Export (Feature 4)
+    weights_dict = {
+        'w_penduduk': w_p_val,
+        'w_kemiskinan': w_k_val,
+        'w_jarak': w_j_val,
+        'w_sinyal': w_si_val,
+        'w_sekolah': w_se_val
+    }
+    render_export_section(t, df_filtered, weights_dict, lang_code)
 
-if search_query.strip():
-    df_filtered = df_filtered[df_filtered['nama_desa'].str.contains(search_query.strip(), case=False, na=False)]
-
-if selected_signals:
-    df_filtered = df_filtered[df_filtered['status_sinyal_eksisting'].isin(selected_signals)]
-
-df_filtered = df_filtered[df_filtered['persentase_kemiskinan'] >= min_poverty]
-
-st.caption(t['showing_caption'].format(filtered=len(df_filtered), total=len(df_ranked)))
-
-# 7. Render Visualization Dashboard
-st.markdown("---")
-render_dashboard_visuals(t, df_filtered)
-
-# 8. Render Geospatial Map
-render_geospatial_map(t, df_filtered)
-
-# 9. Export Section
-render_export_section(t, df_filtered)
+with tab_comparator:
+    # Scenario Comparison Mode (Feature 2)
+    render_scenario_comparator(t, df)

@@ -1,9 +1,14 @@
-# 1. Define Language Translations
+# config.py
+
 LANG_TEXTS = {
     'en': {
         'page_title': "Village Wi-Fi Priority Index (TOPSIS)",
         'title': "🌐 Village Wi-Fi Priority Index (TOPSIS Engine)",
-        'subtitle': "Adjust criteria weights below to recalculate the ideal TOPSIS solution in real time.",
+        'subtitle': "Multi-Criteria Decision Support & Geospatial Intelligence for Public Policy.",
+        'tab_single': "🎯 Live Decision Engine",
+        'tab_compare': "⚖️ Policy Scenario Comparator",
+        'tab_map': "🗺️ Geospatial & Boundary Map",
+        'tab_report': "📑 Executive Policy Brief (PDF)",
         'weight_header': "⚙️ TOPSIS Weight Allocation",
         'w_penduduk': "Population Weight (%)",
         'w_kemiskinan': "Poverty Rate Weight (%)",
@@ -26,8 +31,10 @@ LANG_TEXTS = {
         'table_title': "Detailed Ranking Table",
         'export_header': "📄 Export Results",
         'download_btn': "📥 Download Filtered Priority List CSV",
-        'map_title': "🗺️ Interactive Google Maps Geospatial View",
-        'map_style': "Select Map Style:",
+        'download_pdf_btn': "📥 Generate & Download Official PDF Policy Brief",
+        'map_title': "🗺️ Interactive Geospatial & ArcGIS Polygon View",
+        'map_style': "Select Base Map Style:",
+        'toggle_boundaries': "Show ArcGIS Village / Kecamatan Boundaries",
         'high_priority': "🔴 High Priority",
         'medium_priority': "🟠 Medium Priority",
         'low_priority': "🟢 Low Priority",
@@ -35,12 +42,19 @@ LANG_TEXTS = {
         'popup_signal': "Signal",
         'popup_poverty': "Poverty",
         'popup_schools': "Schools",
+        'scenario_a_title': "Scenario A (e.g. Education-Focused)",
+        'scenario_b_title': "Scenario B (e.g. Economic/Poverty-Focused)",
+        'rank_shift_col': "Rank Shift (A → B)",
         'select_lang': "Select Language / Pilih Bahasa:"
     },
     'id': {
         'page_title': "Indeks Prioritas Wi-Fi Desa (TOPSIS)",
         'title': "🌐 Indeks Prioritas Wi-Fi Desa (TOPSIS Engine)",
-        'subtitle': "Sesuaikan bobot kriteria di bawah ini untuk menghitung ulang solusi ideal TOPSIS secara real time.",
+        'subtitle': "Sistem Pendukung Keputusan Spasial & Kebijakan Publik Berbasis Multi-Kriteria.",
+        'tab_single': "🎯 Mesin Keputusan Langsung",
+        'tab_compare': "⚖️ Komparator Skenario Kebijakan",
+        'tab_map': "🗺️ Peta Geospasial & Poligon Wilayah",
+        'tab_report': "📑 Ringkasan Eksekutif (PDF)",
         'weight_header': "⚙️ Alokasi Bobot TOPSIS",
         'w_penduduk': "Bobot Jumlah Penduduk (%)",
         'w_kemiskinan': "Bobot Tingkat Kemiskinan (%)",
@@ -63,8 +77,10 @@ LANG_TEXTS = {
         'table_title': "Tabel Peringkat Detail",
         'export_header': "📄 Ekspor Hasil",
         'download_btn': "📥 Unduh CSV Daftar Prioritas Terfilter",
-        'map_title': "🗺️ Tampilan Geospasial Peta Google Interaktif",
-        'map_style': "Pilih Gaya Peta:",
+        'download_pdf_btn': "📥 Buat & Unduh Dokumen Ringkasan Eksekutif PDF",
+        'map_title': "🗺️ Tampilan Geospasial & Poligon ArcGIS Interaktif",
+        'map_style': "Pilih Gaya Peta Dasar:",
+        'toggle_boundaries': "Tampilkan Batas Poligon Desa/Kecamatan ArcGIS",
         'high_priority': "🔴 Prioritas Tinggi",
         'medium_priority': "🟠 Prioritas Sedang",
         'low_priority': "🟢 Prioritas Rendah",
@@ -72,6 +88,9 @@ LANG_TEXTS = {
         'popup_signal': "Sinyal",
         'popup_poverty': "Kemiskinan",
         'popup_schools': "Sekolah",
+        'scenario_a_title': "Skenario A (Fokus Pendidikan)",
+        'scenario_b_title': "Skenario B (Fokus Pengentasan Kemiskinan)",
+        'rank_shift_col': "Pergeseran Peringkat (A → B)",
         'select_lang': "Pilih Bahasa / Select Language:"
     }
 }
@@ -88,24 +107,9 @@ DEFAULT_WEIGHTS = {
 
 SLIDER_CSS = """
     <style>
-    /* Enlarge the slider labels */
-    div[data-testid="stSlider"] label p {
-        font-size: 1.15rem !important;
-        font-weight: 600 !important;
-    }
-    /* Enlarge the slider track */
-    div[data-testid="stSlider"] [data-baseweb="slider"] > div {
-        height: 12px !important;
-    }
-    /* Make the thumb (handle) significantly larger */
-    div[data-testid="stSlider"] [role="slider"] {
-        width: 26px !important;
-        height: 26px !important;
-        border: 2px solid #ffffff !important;
-    }
-    /* Enlarge value bubbles */
-    div[data-testid="stSlider"] div {
-        font-size: 1.05rem !important;
-    }
+    div[data-testid="stSlider"] label p { font-size: 1.15rem !important; font-weight: 600 !important; }
+    div[data-testid="stSlider"] [data-baseweb="slider"] > div { height: 12px !important; }
+    div[data-testid="stSlider"] [role="slider"] { width: 26px !important; height: 26px !important; border: 2px solid #ffffff !important; }
+    div[data-testid="stSlider"] div { font-size: 1.05rem !important; }
     </style>
 """
