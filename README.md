@@ -8,9 +8,8 @@ This application is designed to assist Decision Makers (e.g., Diskominfo Kutai K
 
 ## 🚀 Key Features
 
-* **Bilingual Support**: Toggle between **English** and **Bahasa Indonesia** dynamically in the sidebar.
+* **Bilingual Support**: Toggle between **English** and **Bahasa Indonesia** dynamically using the clean dropdown selector at the top-right corner.
 * **100% Shared Weight Allocation**: Interactive sliders at the top of the dashboard let you allocate weights to different criteria. The sliders visually and physically lock when the total sum reaches `100%` (dynamic remaining budget capping), preventing allocation errors.
-* **Policy Sensitivity Comparator**: Compare priority shifts side-by-side between two distinct policy scenarios (e.g., Focus on Education vs. Focus on Poverty Alleviation) to see how weighting changes affect rankings in real-time.
 * **Real-time GeoServer Integration**: Fetches spatial data from the Palapa Kutai Kartanegara WFS GeoServer, parsing coordinates and properties into a unified clean local dataset with automatic fallback options.
 * **Geospatial Map (Google Maps & ArcGIS Polygons)**: Dynamic markers displaying village details on roadmap/satellite maps, complete with shaded boundary polygons, color-coded by priority (High 🔴, Medium 🟠, Low 🟢).
 * **Filter & Search Controls**: Search villages by name, filter by existing signal status, or set a minimum poverty rate. Graphs, tables, and the map update in real-time.
@@ -68,13 +67,12 @@ The application will start, and a browser window should automatically open to:
 
 ## 📖 How to Use the App
 
-1. **Select Language**: Go to the sidebar and choose either **English** or **Bahasa Indonesia** to switch languages.
+1. **Select Language**: Go to the top-right corner dropdown to switch the application language.
 2. **Allocate Weights**: Adjust the 5 sliders in the **TOPSIS Weight Allocation** panel at the top. The sliders will change to a **glowing green** when they sum up to exactly `100%`. To increase a slider when the budget is full, you must first lower another slider.
-3. **Compare Policies**: Navigate to the comparator tab to configure two separate weight configurations (Scenario A vs Scenario B) and observe the sensitivity of rankings.
-4. **Filter Results**: Use the **Filter & Search Controls** below the weights panel to narrow down villages by name, existing signal availability, or poverty levels.
-5. **Inspect Dashboard**:
+3. **Filter Results**: Use the **Filter & Search Controls** below the weights panel to narrow down villages by name, existing signal availability, or poverty levels.
+4. **Inspect Dashboard**:
    * Review the **Top Priority Villages** bar chart.
    * View the **Summary Metrics** for the top-ranked village.
    * Look at the **Detailed Ranking Table** for precise numeric scores.
-6. **View Geospatial Map**: Scroll down to the **Geospatial View** to inspect village locations. Click on any pin marker to see its name, signal status, poverty percentage, schools, and TOPSIS score. You can toggle map types and the ArcGIS polygon boundary overlays.
-7. **Export Data & Report**: Click the **Download Filtered Priority List CSV** button to download your calculated priorities, or click the **Download Executive Policy Brief PDF** button for a print-ready briefing.
+5. **View Geospatial Map**: Scroll down to the **Geospatial View** to inspect village locations. Click on any pin marker to see its name, signal status, poverty percentage, schools, and TOPSIS score. You can toggle map types and the ArcGIS polygon boundary overlays.
+6. **Export Data & Report**: Click the **Download Filtered Priority List CSV** button to download your calculated priorities, or click the **Download Executive Policy Brief PDF** button for a print-ready briefing.

@@ -116,61 +116,6 @@ def render_dashboard_visuals(t, df_filtered):
         use_container_width=True
     )
 
-
-def render_scenario_comparator(t, df):
-    """Renders the side-by-side policy scenario sensitivity comparator."""
-    st.subheader(t['tab_compare'])
-    st.caption("Simulate and compare how village rankings shift between two distinct policy directions.")
-
-    col_a, col_b = st.columns(2)
-    with col_a:
-        st.markdown(f"#### 🎓 {t['scenario_a_title']}")
-        sa_p = st.number_input("Scenario A - Population %", 0, 100, 10, step=5, key="sa_p")
-        sa_k = st.number_input("Scenario A - Poverty %", 0, 100, 20, step=5, key="sa_k")
-        sa_j = st.number_input("Scenario A - Distance %", 0, 100, 10, step=5, key="sa_j")
-        sa_si = st.number_input("Scenario A - Signal Need %", 0, 100, 20, step=5, key="sa_si")
-        sa_se = st.number_input("Scenario A - Schools %", 0, 100, 40, step=5, key="sa_se")
-
-    with col_b:
-        st.markdown(f"#### 💰 {t['scenario_b_title']}")
-        sb_p = st.number_input("Scenario B - Population %", 0, 100, 20, step=5, key="sb_p")
-        sb_k = st.number_input("Scenario B - Poverty %", 0, 100, 50, step=5, key="sb_k")
-        sb_j = st.number_input("Scenario B - Distance %", 0, 100, 10, step=5, key="sb_j")
-        sb_si = st.number_input("Scenario B - Signal Need %", 0, 100, 10, step=5, key="sb_si")
-        sb_se = st.number_input("Scenario B - Schools %", 0, 100, 10, step=5, key="sb_se")
-
-    # Run TOPSIS for both policies
-    df_a = run_topsis_engine(df, sa_p/100, sa_k/100, sa_j/100, sa_si/100, sa_se/100).reset_index(drop=True)
-    df_a['Rank_A'] = df_a.index + 1
-
-    df_b = run_topsis_engine(df, sb_p/100, sb_k/100, sb_j/100, sb_si/100, sb_se/100).reset_index(drop=True)
-    df_b['Rank_B'] = df_b.index + 1
-
-    df_merged = pd.merge(
-        df_a[['nama_desa', 'topsis_score', 'Rank_A']],
-        df_b[['nama_desa', 'topsis_score', 'Rank_B']],
-        on='nama_desa',
-        suffixes=('_Scenario_A', '_Scenario_B')
-    )
-    df_merged['Rank_Shift'] = df_merged['Rank_A'] - df_merged['Rank_B']
-
-    def format_shift(val):
-        if val > 0:
-            return f"🔺 +{val} (Up in B)"
-        elif val < 0:
-            return f"🔻 {val} (Down in B)"
-        return "➖ 0 (No change)"
-
-    df_merged['Rank_Shift_Label'] = df_merged['Rank_Shift'].apply(format_shift)
-
-    st.markdown("---")
-    st.markdown("### 📊 Policy Sensitivity Matrix (Scenario A vs. Scenario B)")
-    st.dataframe(
-        df_merged.sort_values(by='Rank_A').head(15)[['nama_desa', 'Rank_A', 'topsis_score_Scenario_A', 'Rank_B', 'topsis_score_Scenario_B', 'Rank_Shift_Label']],
-        use_container_width=True
-    )
-
-
 def render_geospatial_map(t, df_filtered):
     """Renders the Folium map with Kukar center coordinates and ArcGIS polygons."""
     st.markdown("---")
