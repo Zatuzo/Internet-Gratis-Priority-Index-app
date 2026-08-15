@@ -7,7 +7,8 @@ from components import (
     render_sliders,
     render_dashboard_visuals,
     render_geospatial_map,
-    render_export_section
+    render_export_section,
+    render_sensitivity_analysis
 )
 
 # 1. Page Configuration
@@ -56,20 +57,26 @@ df_ranked = run_topsis_engine(df, w_p, w_k, w_j, w_si, w_se)
 # Filter & Search Controls
 st.markdown("---")
 st.subheader(t['filter_header'])
-f1, f2, f3 = st.columns([2, 2, 2])
+f1, f2, f3, f4 = st.columns([2, 2, 2, 2])
 with f1:
     search_query = st.text_input(t['search_label'], "", placeholder=t['search_placeholder'])
 with f2:
     sig_opts = df_ranked['status_sinyal_eksisting'].unique().tolist()
     sel_sigs = st.multiselect(t['filter_signal'], options=sig_opts, default=sig_opts)
 with f3:
+    iso_opts = df_ranked['tingkat_keterpencilan'].unique().tolist()
+    sel_iso = st.multiselect("📍 Filter Keterpencilan:", options=iso_opts, default=iso_opts)
+with f4:
     min_pov = st.slider(t['filter_poverty'], 0.0, 100.0, 0.0, step=5.0)
 
+# Apply filters
 df_filtered = df_ranked.copy()
 if search_query.strip():
     df_filtered = df_filtered[df_filtered['nama_desa'].str.contains(search_query.strip(), case=False, na=False)]
 if sel_sigs:
     df_filtered = df_filtered[df_filtered['status_sinyal_eksisting'].isin(sel_sigs)]
+if sel_iso:
+    df_filtered = df_filtered[df_filtered['tingkat_keterpencilan'].isin(sel_iso)]
 df_filtered = df_filtered[df_filtered['persentase_kemiskinan'] >= min_pov]
 
 st.caption(t['showing_caption'].format(filtered=len(df_filtered), total=len(df_ranked)))
@@ -90,3 +97,6 @@ weights_dict = {
     'w_sekolah': w_se_val
 }
 render_export_section(t, df_filtered, weights_dict, lang_code)
+
+# Decision Sensitivity Analysis (Stress-Testing Weights)
+render_sensitivity_analysis(df_filtered, w_p, w_k, w_j, w_si, w_se)

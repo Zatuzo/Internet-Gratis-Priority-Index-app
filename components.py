@@ -6,6 +6,7 @@ import folium
 from streamlit_folium import st_folium
 from topsis import run_topsis_engine
 from pdf_generator import create_policy_pdf
+import plotly.graph_objects as go
 
 def render_sliders(t, TOTAL_LIMIT, defaults, prefix=""):
     """
@@ -262,3 +263,75 @@ def render_export_section(t, df_filtered, weights_dict=None, lang_code='en'):
             mime="application/pdf",
             use_container_width=True
         )
+
+
+def render_sensitivity_analysis(df, w_p, w_k, w_j, w_si, w_se):
+    """Simulates rank stability over weight variations for a selected criterion."""
+    st.markdown("---")
+    st.subheader("📈 Decision Sensitivity Analysis")
+    st.caption("Evaluate how top village rankings shift when varying the weight of a single strategic criterion.")
+
+    crit_options = {
+        "Poverty Rate (Kemiskinan)": "w_kemiskinan",
+        "Signal Need (Sinyal)": "w_sinyal",
+        "Distance to Center (Keterpencilan)": "w_jarak",
+        "Schools (Pendidikan)": "w_sekolah",
+        "Population (Penduduk)": "w_penduduk"
+    }
+
+    selected_crit_label = st.selectbox("Select Criterion to Stress-Test:", list(crit_options.keys()))
+    selected_key = crit_options[selected_crit_label]
+
+    # Baseline weights
+    base_weights = {
+        'w_penduduk': w_p, 'w_kemiskinan': w_k, 'w_jarak': w_j, 
+        'w_sinyal': w_si, 'w_sekolah': w_se
+    }
+
+    weight_steps = np.linspace(0.05, 0.50, 10)
+    top_villages = df.head(5)['nama_desa'].tolist()
+    sensitivity_results = {v: [] for v in top_villages}
+
+    for w_val in weight_steps:
+        temp_w = base_weights.copy()
+        temp_w[selected_key] = w_val
+        
+        # Re-balance other weights proportionally
+        other_keys = [k for k in temp_w if k != selected_key]
+        remaining_sum = sum(base_weights[k] for k in other_keys)
+        if remaining_sum > 0:
+            scale = (1.0 - w_val) / remaining_sum
+            for k in other_keys:
+                temp_w[k] = base_weights[k] * scale
+        
+        # Run simulation
+        res = run_topsis_engine(
+            df, 
+            temp_w['w_penduduk'], temp_w['w_kemiskinan'], 
+            temp_w['w_jarak'], temp_w['w_sinyal'], temp_w['w_sekolah']
+        )
+        
+        # Extract new scores for the baseline top villages
+        score_lookup = dict(zip(res['nama_desa'], res['topsis_score']))
+        for v in top_villages:
+            sensitivity_results[v].append(score_lookup.get(v, 0))
+
+    # Render Plotly Chart
+    fig = go.Figure()
+    for v, scores in sensitivity_results.items():
+        fig.add_trace(go.Scatter(
+            x=[round(w * 100, 1) for w in weight_steps],
+            y=scores,
+            mode='lines+markers',
+            name=v
+        ))
+
+    fig.update_layout(
+        xaxis_title=f"Tested Weight for {selected_crit_label} (%)",
+        yaxis_title="TOPSIS Score",
+        height=400,
+        margin=dict(l=20, r=20, t=30, b=20),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
