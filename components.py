@@ -98,7 +98,10 @@ def render_dashboard_visuals(t, df_filtered):
     with col1:
         st.subheader(t['top10_title'])
         if not df_filtered.empty:
-            st.bar_chart(df_filtered.set_index('nama_desa')['topsis_score'].head(10))
+            # Prevent duplicate village names from aggregating by appending Kecamatan
+            chart_df = df_filtered.head(10).copy()
+            chart_df['display_name'] = chart_df['nama_desa'] + " (" + chart_df['kecamatan'] + ")"
+            st.bar_chart(chart_df.set_index('display_name')['topsis_score'])
         else:
             st.warning(t['no_match_warning'])
 
@@ -174,6 +177,14 @@ def render_geospatial_map(t, df_filtered):
                 tooltip=f"Boundary: {row['nama_desa']} (Score: {row['topsis_score']:.3f})"
             ).add_to(m)
 
+    # 1. Add Pusat Pemerintahan / Tenggarong Pinpoint Landmark
+    folium.Marker(
+        location=[-0.36787, 116.92331],
+        tooltip="🏛️ Pusat Pemerintahan Kab. Kukar (Tenggarong)",
+        popup="<b>Pusat Kabupaten Tenggarong</b><br>Titik Acuan Perhitungan Jarak Keterpencilan",
+        icon=folium.Icon(color="black", icon="star", prefix="fa")
+    ).add_to(m)
+
     # Render Circle Markers
     for _, row in df_map.iterrows():
         if row['topsis_score'] > 0.65:
@@ -186,16 +197,28 @@ def render_geospatial_map(t, df_filtered):
             color = "green"
             status_label = t['low_priority']
 
+        score = row['topsis_score']
+        is_en = (t['popup_schools'] == "Schools")
+        dist_lbl = "Distance to Center" if is_en else "Jarak ke Pusat"
+        cat_lbl = "Category" if is_en else "Kategori"
+        pop_lbl = "Population" if is_en else "Penduduk"
+        score_lbl = "TOPSIS Score" if is_en else "Skor TOPSIS"
+        
         popup_text = f"""
-        <div style="font-family: Arial; font-size: 13px;">
-            <b>{row['nama_desa']}</b><br>
-            <b>{t['popup_status']}:</b> {status_label}<br>
-            <b>TOPSIS Score:</b> {row['topsis_score']:.4f}<br>
-            <b>{t['popup_signal']}:</b> {row['status_sinyal_eksisting']}<br>
-            <b>{t['popup_poverty']}:</b> {row['persentase_kemiskinan']}%<br>
-            <b>{t['popup_schools']}:</b> {row['jumlah_sekolah']}
-        </div>
-        """
+<div style="font-family: Arial; font-size: 13px; min-width: 190px;">
+    <h4 style="margin: 0 0 5px 0;">{row['nama_desa']}</h4>
+    <small style="color: #64748b;">Kec. {row.get('kecamatan', '-')}</small><br>
+    <hr style="margin: 5px 0;">
+    <b>{t['popup_status']}:</b> {status_label}<br>
+    <b>{dist_lbl}:</b> {row['jarak_ke_pusat_kota_km']} km<br>
+    <b>{cat_lbl}:</b> {row.get('tingkat_keterpencilan', '-')}<br>
+    <b>{t['popup_signal']}:</b> {row['status_sinyal_eksisting']}<br>
+    <b>{t['popup_poverty']}:</b> {row['persentase_kemiskinan']}%<br>
+    <b>{t['popup_schools']}:</b> {row['jumlah_sekolah']}<br>
+    <b>{pop_lbl}:</b> {row['jumlah_penduduk']}<br>
+    <b>{score_lbl}:</b> {score:.4f}
+</div>
+"""
 
         folium.CircleMarker(
             location=[row['latitude'], row['longitude']],
@@ -208,7 +231,7 @@ def render_geospatial_map(t, df_filtered):
             fill_opacity=0.85
         ).add_to(m)
 
-    st_folium(m, width=1100, height=550)
+    st_folium(m, width=1100, height=550, returned_objects=[])
 
 
 def render_export_section(t, df_filtered, weights_dict=None, lang_code='en'):
