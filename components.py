@@ -289,10 +289,8 @@ def render_sensitivity_analysis(df, w_p, w_k, w_j, w_si, w_se):
     }
 
     weight_steps = np.linspace(0.05, 0.50, 10)
-
-    # 1. Jalankan simulasi dan catat semua desa yang pernah masuk Top 5
-    tracked_villages = set()
-    sim_records = []
+    top_villages = df.head(5)['nama_desa'].tolist()
+    sensitivity_results = {v: [] for v in top_villages}
 
     for w_val in weight_steps:
         temp_w = base_weights.copy()
@@ -311,19 +309,15 @@ def render_sensitivity_analysis(df, w_p, w_k, w_j, w_si, w_se):
             temp_w['w_jarak'], temp_w['w_sinyal'], temp_w['w_sekolah']
         )
         
-        # Ambil Top 5 di titik bobot ini
-        current_top5 = res.head(5)['nama_desa'].tolist()
-        tracked_villages.update(current_top5)
-        
         score_lookup = dict(zip(res['nama_desa'], res['topsis_score']))
-        sim_records.append((round(w_val * 100, 1), score_lookup))
+        for v in top_villages:
+            sensitivity_results[v].append(score_lookup.get(v, 0))
 
-    # 2. Plot semua desa penantang yang pernah masuk Top 5
+    # Render Plotly Chart
     fig = go.Figure()
-    for v in tracked_villages:
-        scores = [rec[1].get(v, 0) for rec in sim_records]
+    for v, scores in sensitivity_results.items():
         fig.add_trace(go.Scatter(
-            x=[rec[0] for rec in sim_records],
+            x=[round(w * 100, 1) for w in weight_steps],
             y=scores,
             mode='lines+markers',
             name=v
