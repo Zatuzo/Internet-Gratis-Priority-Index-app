@@ -5,6 +5,7 @@ from data_loader import load_and_clean_data
 from topsis import run_topsis_engine
 from components import (
     render_sliders,
+    render_scenario_presets,
     render_dashboard_visuals,
     render_geospatial_map,
     render_export_section,
@@ -48,6 +49,7 @@ df = load_and_clean_data()
 
 # 4. Main TOPSIS Dashboard View
 st.write(t['weight_header'])
+render_scenario_presets()
 w_p_val, w_k_val, w_j_val, w_si_val, w_se_val = render_sliders(t, TOTAL_LIMIT, DEFAULT_WEIGHTS)
 
 # Run TOPSIS
@@ -85,6 +87,9 @@ st.caption(t['showing_caption'].format(filtered=len(df_filtered), total=len(df_r
 st.markdown("---")
 render_dashboard_visuals(t, df_filtered)
 
+# Decision Sensitivity Analysis (Stress-Testing Weights)
+render_sensitivity_analysis(df_filtered, w_p, w_k, w_j, w_si, w_se)
+
 # Geospatial Boundary Map (Feature 1)
 render_geospatial_map(t, df_filtered)
 
@@ -97,6 +102,3 @@ weights_dict = {
     'w_sekolah': w_se_val
 }
 render_export_section(t, df_filtered, weights_dict, lang_code)
-
-# Decision Sensitivity Analysis (Stress-Testing Weights)
-render_sensitivity_analysis(df_filtered, w_p, w_k, w_j, w_si, w_se)

@@ -335,3 +335,37 @@ def render_sensitivity_analysis(df, w_p, w_k, w_j, w_si, w_se):
     )
 
     st.plotly_chart(fig, use_container_width=True)
+
+
+def render_scenario_presets():
+    """Renders quick-select buttons that pre-set slider weights to 100%."""
+    st.write("💡 **Quick Policy Presets:**")
+    col1, col2, col3, col4 = st.columns(4)
+
+    presets = {
+        'default': {'w_penduduk': 20, 'w_kemiskinan': 30, 'w_jarak': 10, 'w_sinyal': 25, 'w_sekolah': 15},
+        'education': {'w_penduduk': 10, 'w_kemiskinan': 20, 'w_jarak': 10, 'w_sinyal': 25, 'w_sekolah': 35},
+        'poverty': {'w_penduduk': 20, 'w_kemiskinan': 45, 'w_jarak': 10, 'w_sinyal': 15, 'w_sekolah': 10},
+        'isolated': {'w_penduduk': 10, 'w_kemiskinan': 15, 'w_jarak': 40, 'w_sinyal': 30, 'w_sekolah': 5}
+    }
+
+    def apply_preset(weights):
+        for k, v in weights.items():
+            st.session_state[k] = v
+
+    with col1:
+        if st.button("⚖️ Default Balanced", use_container_width=True):
+            apply_preset(presets['default'])
+            st.rerun()
+    with col2:
+        if st.button("📚 Focus: Pendidikan", use_container_width=True):
+            apply_preset(presets['education'])
+            st.rerun()
+    with col3:
+        if st.button("📉 Focus: Kemiskinan", use_container_width=True):
+            apply_preset(presets['poverty'])
+            st.rerun()
+    with col4:
+        if st.button("🏞️ Focus: Keterpencilan", use_container_width=True):
+            apply_preset(presets['isolated'])
+            st.rerun()
