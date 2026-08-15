@@ -289,14 +289,15 @@ def render_sensitivity_analysis(df, w_p, w_k, w_j, w_si, w_se):
     }
 
     weight_steps = np.linspace(0.05, 0.50, 10)
-    top_villages = df.head(5)['nama_desa'].tolist()
-    sensitivity_results = {v: [] for v in top_villages}
+
+    # 1. Jalankan simulasi dan catat semua desa yang pernah masuk Top 5
+    tracked_villages = set()
+    sim_records = []
 
     for w_val in weight_steps:
         temp_w = base_weights.copy()
         temp_w[selected_key] = w_val
         
-        # Re-balance other weights proportionally
         other_keys = [k for k in temp_w if k != selected_key]
         remaining_sum = sum(base_weights[k] for k in other_keys)
         if remaining_sum > 0:
@@ -304,23 +305,25 @@ def render_sensitivity_analysis(df, w_p, w_k, w_j, w_si, w_se):
             for k in other_keys:
                 temp_w[k] = base_weights[k] * scale
         
-        # Run simulation
         res = run_topsis_engine(
             df, 
             temp_w['w_penduduk'], temp_w['w_kemiskinan'], 
             temp_w['w_jarak'], temp_w['w_sinyal'], temp_w['w_sekolah']
         )
         
-        # Extract new scores for the baseline top villages
+        # Ambil Top 5 di titik bobot ini
+        current_top5 = res.head(5)['nama_desa'].tolist()
+        tracked_villages.update(current_top5)
+        
         score_lookup = dict(zip(res['nama_desa'], res['topsis_score']))
-        for v in top_villages:
-            sensitivity_results[v].append(score_lookup.get(v, 0))
+        sim_records.append((round(w_val * 100, 1), score_lookup))
 
-    # Render Plotly Chart
+    # 2. Plot semua desa penantang yang pernah masuk Top 5
     fig = go.Figure()
-    for v, scores in sensitivity_results.items():
+    for v in tracked_villages:
+        scores = [rec[1].get(v, 0) for rec in sim_records]
         fig.add_trace(go.Scatter(
-            x=[round(w * 100, 1) for w in weight_steps],
+            x=[rec[0] for rec in sim_records],
             y=scores,
             mode='lines+markers',
             name=v
