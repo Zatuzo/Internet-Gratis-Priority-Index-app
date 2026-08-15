@@ -179,7 +179,7 @@ def render_geospatial_map(t, df_filtered):
 
     # 1. Add Pusat Pemerintahan / Tenggarong Pinpoint Landmark
     folium.Marker(
-        location=[-0.44019, 116.98139],
+        location=[-0.42880, 116.98587],
         tooltip="🏛️ Pusat Pemerintahan Kab. Kukar (Tenggarong)",
         popup="<b>Pusat Kabupaten Tenggarong</b><br>Titik Acuan Perhitungan Jarak Keterpencilan",
         icon=folium.Icon(color="black", icon="star", prefix="fa")

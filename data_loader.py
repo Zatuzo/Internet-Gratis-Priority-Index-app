@@ -146,8 +146,8 @@ def load_and_clean_data(file_path=None):
     df['longitude'] = pd.to_numeric(df[lon_col], errors='coerce')
 
     # Calculate actual distance to Tenggarong (Pusat Kabupaten)
-    TENGGARONG_LAT = -0.44019
-    TENGGARONG_LON = 116.98139
+    TENGGARONG_LAT = -0.42880
+    TENGGARONG_LON = 116.98587
     df['jarak_ke_pusat_kota_km'] = calculate_haversine_distance(
         df['latitude'], df['longitude'], TENGGARONG_LAT, TENGGARONG_LON
     ).round(2)
